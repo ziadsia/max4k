@@ -307,36 +307,20 @@
                 ...params 
             }).toString();
             
+            // استخدام بروكسي مجاني تماماً يمرر الطلب من خلال HTTPS
             const targetUrl = `${SERVER_HOST}/player_api.php?${query}`;
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
 
-            // محرك مسارات متعددة لجلب البيانات وتجاوز الحظر
-            const endpoints = [
-                `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-                targetUrl
-            ];
-
-            for (const url of endpoints) {
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 6000);
-                    
-                    const res = await fetch(url, { signal: controller.signal });
-                    clearTimeout(timeoutId);
-                    
-                    if (res.ok) {
-                        const text = await res.text();
-                        if (text.trim().startsWith("{") || text.trim().startsWith("[")) {
-                            return JSON.parse(text);
-                        }
-                    }
-                } catch (e) {
-                    console.warn(`تخطي المسار: ${url}`);
-                }
+            try {
+                const res = await fetch(proxyUrl);
+                if (!res.ok) throw new Error("فشل الاتصال");
+                const text = await res.text();
+                return JSON.parse(text);
+            } catch (e) {
+                console.error("خطأ:", e);
+                throw new Error("تعذر الاتصال بالسيرفر، تأكد من صحة بيانات الدخول أو جرب متصفح آخر.");
             }
-            
-            throw new Error("تعذر الاتصال بالسيرفر. تأكد من أن السيرفر يعمل بشكل طبيعي.");
+        }
         }
         }
         window.addEventListener("DOMContentLoaded", () => {
