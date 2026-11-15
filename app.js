@@ -1,4 +1,4 @@
-const SERVER_HOST = "http://95.216.113.56";
+const SERVER_HOST = "https://95.216.113.56";
 
 let state = {
     username: "", password: "", currentTab: "live",
