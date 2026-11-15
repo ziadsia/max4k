@@ -1,4 +1,4 @@
-const SERVER_HOST = "https://max4k.xyz";
+const SERVER_HOST = "http://95.216.113.56";
 
 let state = {
     username: "", password: "", currentTab: "live",
@@ -14,12 +14,14 @@ const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
 const loginBtn = document.getElementById("login-btn");
 
+// دالة اتصال ذكية تمرر عبر بروكسي HTTPS لتجاوز حظر Mixed Content في صفحات جيت هوب
 async function fetchXtream(params) {
     const query = new URLSearchParams({ username: state.username, password: state.password, ...params }).toString();
     const targetUrl = `${SERVER_HOST}/player_api.php?${query}`;
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
 
     try {
-        const res = await fetch(targetUrl);
+        const res = await fetch(proxyUrl);
         if (!res.ok) throw new Error("فشل الاتصال بالسيرفر");
         return await res.json();
     } catch (e) {
