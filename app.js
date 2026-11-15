@@ -148,6 +148,7 @@ function renderChannels(channels) {
     });
 }
 
+// المشغل الحديث المحسن للبث المباشر
 function playLiveStream(channel) {
     state.currentPlaying = { type: "live", data: channel };
     document.getElementById("playing-title").textContent = channel.name;
@@ -157,14 +158,51 @@ function playLiveStream(channel) {
     const video = document.getElementById("video-player");
     const m3u8Url = `${SERVER_HOST}/live/${state.username}/${state.password}/${channel.stream_id}.m3u8`;
 
-    if (state.hlsInstance) { state.hlsInstance.destroy(); state.hlsInstance = null; }
+    if (state.hlsInstance) { 
+        state.hlsInstance.destroy(); 
+        state.hlsInstance = null; 
+    }
+
     if (Hls.isSupported()) {
-        const hls = new Hls();
+        const hls = new Hls({
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            enableWorker: true,
+            lowLatencyMode: true
+        });
+        
         hls.loadSource(m3u8Url);
         hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => { document.getElementById("player-loader").classList.add("hidden"); video.play().catch(() => {}); });
-        hls.on(Hls.Events.ERROR, () => { document.getElementById("player-loader").classList.add("hidden"); });
+        
+        hls.on(Hls.Events.MANIFEST_PARSED, () => { 
+            document.getElementById("player-loader").classList.add("hidden"); 
+            video.play().catch(() => {}); 
+        });
+
+        hls.on(Hls.Events.ERROR, (event, data) => {
+            if (data.fatal) {
+                switch (data.type) {
+                    case Hls.ErrorTypes.NETWORK_ERROR:
+                        hls.startLoad();
+                        break;
+                    case Hls.ErrorTypes.MEDIA_ERROR:
+                        hls.recoverMediaError();
+                        break;
+                    default:
+                        document.getElementById("player-loader").classList.add("hidden");
+                        hls.destroy();
+                        break;
+                }
+            }
+        });
+        
         state.hlsInstance = hls;
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = m3u8Url;
+        video.addEventListener('loadedmetadata', () => {
+            document.getElementById("player-loader").classList.add("hidden");
+            video.play().catch(() => {});
+        });
     }
 }
 
@@ -244,18 +282,30 @@ async function openSeriesDetails(series) {
 
 document.getElementById("close-series-modal").onclick = () => document.getElementById("series-modal").classList.add("hidden");
 
+// مشغل الأفلام والمسلسلات الحديث
 function openVodPlayer(title, url) {
     const modal = document.getElementById("vod-player-modal");
     const player = document.getElementById("vod-video-player");
     document.getElementById("vod-playing-title").textContent = title;
     modal.classList.remove("hidden");
-    player.src = url;
-    player.play().catch(() => {});
+    
+    if (url.includes('.m3u8') && Hls.isSupported()) {
+        if (window.vodHlsInstance) { window.vodHlsInstance.destroy(); }
+        const vodHls = new Hls();
+        vodHls.loadSource(url);
+        vodHls.attachMedia(player);
+        vodHls.on(Hls.Events.MANIFEST_PARSED, () => { player.play().catch(() => {}); });
+        window.vodHlsInstance = vodHls;
+    } else {
+        player.src = url;
+        player.play().catch(() => {});
+    }
 }
 
 document.getElementById("close-vod-player").onclick = () => {
     const player = document.getElementById("vod-video-player");
     player.pause(); player.src = "";
+    if (window.vodHlsInstance) { window.vodHlsInstance.destroy(); }
     document.getElementById("vod-player-modal").classList.add("hidden");
 };
 
