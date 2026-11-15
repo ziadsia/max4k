@@ -301,19 +301,43 @@
         const loginBtn = document.getElementById("login-btn");
 
         async function fetchXtream(params) {
-            const query = new URLSearchParams({ username: state.username, password: state.password, ...params }).toString();
+            const query = new URLSearchParams({ 
+                username: state.username, 
+                password: state.password, 
+                ...params 
+            }).toString();
+            
             const targetUrl = `${SERVER_HOST}/player_api.php?${query}`;
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-            try {
-                const res = await fetch(proxyUrl);
-                if (!res.ok) throw new Error("فشل الاتصال بالسيرفر");
-                return await res.json();
-            } catch (e) {
-                console.error("خطأ:", e);
-                throw new Error("تعذر الاتصال بالسيرفر، تأكد من صحة بيانات الدخول.");
-            }
-        }
 
+            // قائمة مسارات الاتصال الذكية لتجاوز قيود CORS و HTTPS
+            const endpoints = [
+                targetUrl,
+                `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
+            ];
+
+            for (const url of endpoints) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 8000); // مهلة 8 ثوانٍ لكل محاولة
+                    
+                    const res = await fetch(url, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    
+                    if (res.ok) {
+                        const text = await res.text();
+                        if (text.trim().startsWith("{") || text.trim().startsWith("[")) {
+                            return JSON.parse(text);
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`تخطي المسار: ${url}`);
+                }
+            }
+            
+            throw new Error("تعذر الاتصال بالسيرفر حالياً. تأكد من صحة اليوزر والباسورد أو حالة السيرفر.");
+        }
         window.addEventListener("DOMContentLoaded", () => {
             const saved = JSON.parse(localStorage.getItem("max4k_auth"));
             if (saved && saved.username && saved.password) {
