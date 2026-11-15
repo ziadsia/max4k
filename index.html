@@ -300,29 +300,21 @@
         const loginError = document.getElementById("login-error");
         const loginBtn = document.getElementById("login-btn");
 
-       async function fetchXtream(params) {
-            const query = new URLSearchParams({ 
-                username: state.username, 
-                password: state.password, 
-                ...params 
-            }).toString();
-            
-            // استخدام بروكسي مجاني تماماً يمرر الطلب من خلال HTTPS
+        async function fetchXtream(params) {
+            const query = new URLSearchParams({ username: state.username, password: state.password, ...params }).toString();
             const targetUrl = `${SERVER_HOST}/player_api.php?${query}`;
             const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
 
             try {
                 const res = await fetch(proxyUrl);
                 if (!res.ok) throw new Error("فشل الاتصال");
-                const text = await res.text();
-                return JSON.parse(text);
+                return await res.json();
             } catch (e) {
                 console.error("خطأ:", e);
-                throw new Error("تعذر الاتصال بالسيرفر، تأكد من صحة بيانات الدخول أو جرب متصفح آخر.");
+                throw new Error("تعذر الاتصال بالسيرفر. تأكد من صحة بيانات الدخول.");
             }
         }
-        }
-        }
+
         window.addEventListener("DOMContentLoaded", () => {
             const saved = JSON.parse(localStorage.getItem("max4k_auth"));
             if (saved && saved.username && saved.password) {
