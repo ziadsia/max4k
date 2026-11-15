@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAX 4K | منصة البث والترفيه</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <!-- مكتبات تشغيل البث المباشر والأفلام -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mpegts.js@latest/dist/mpegts.min.js"></script>
+</head>
+<body>
+
+    <!-- شاشة تسجيل الدخول -->
+    <section id="login-screen" class="login-wrapper">
+        <div class="login-bg-glow"></div>
+        <div class="login-card">
+            <div class="brand-logo">
+                <i class="fa-solid fa-play"></i>
+                <h1>MAX <span>4K</span></h1>
+            </div>
+            <p class="login-subtitle">أدخل بيانات اشتراكك للدخول إلى عالم الترفيه</p>
+            
+            <form id="login-form">
+                <div class="input-group">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="username" placeholder="اسم المستخدم (Username)" required autocomplete="username">
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="password" placeholder="كلمة المرور (Password)" required autocomplete="current-password">
+                    <button type="button" id="toggle-pass" class="eye-btn"><i class="fa-solid fa-eye"></i></button>
+                </div>
+                <div class="remember-row">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="remember-me" checked>
+                        <span>تذكر بيانات الدخول</span>
+                    </label>
+                    <span class="server-badge"><i class="fa-solid fa-server"></i> MAX4K VIP</span>
+                </div>
+                <button type="submit" id="login-btn" class="btn-primary">
+                    <span>تسجيل الدخول</span>
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+            </form>
+            <div id="login-error" class="error-msg hidden"></div>
+        </div>
+    </section>
+
+    <!-- واجهة التطبيق الرئيسية -->
+    <div id="app-screen" class="app-container hidden">
+        <!-- القائمة الجانبية -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo small">
+                    <i class="fa-solid fa-play"></i>
+                    <h2>MAX <span>4K</span></h2>
+                </div>
+            </div>
+
+            <nav class="main-nav">
+                <button class="nav-item active" data-tab="live">
+                    <i class="fa-solid fa-tv"></i>
+                    <span>البث المباشر</span>
+                </button>
+                <button class="nav-item" data-tab="movies">
+                    <i class="fa-solid fa-film"></i>
+                    <span>الأفلام (VOD)</span>
+                </button>
+                <button class="nav-item" data-tab="series">
+                    <i class="fa-solid fa-clapperboard"></i>
+                    <span>المسلسلات</span>
+                </button>
+                <button class="nav-item" data-tab="favorites">
+                    <i class="fa-solid fa-heart"></i>
+                    <span>المفضلة</span>
+                </button>
+            </nav>
+
+            <div class="user-card">
+                <div class="user-info">
+                    <div class="avatar"><i class="fa-solid fa-user-astronaut"></i></div>
+                    <div>
+                        <h4 id="display-username">المشترك</h4>
+                        <span id="account-status" class="status-active">نشط</span>
+                    </div>
+                </div>
+                <div class="sub-details">
+                    <p><i class="fa-regular fa-calendar-check"></i> ينتهي: <strong id="exp-date">--/--/----</strong></p>
+                    <p><i class="fa-solid fa-desktop"></i> المتصلين: <strong id="active-cons">0 / 1</strong></p>
+                </div>
+                <button id="logout-btn" class="btn-logout">
+                    <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
+                </button>
+            </div>
+        </aside>
+
+        <!-- المحتوى الرئيسي -->
+        <main class="main-content">
+            <!-- الشريط العلوي -->
+            <header class="topbar">
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="search-input" placeholder="ابحث عن قناة، فيلم، أو مسلسل...">
+                </div>
+                <div class="topbar-actions">
+                    <button id="refresh-data-btn" class="icon-btn" title="تحديث القوائم">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- منطقة البث المباشر (مشغل + قائمة قنوات) -->
+            <div id="live-workspace" class="live-grid">
+                <!-- قسم الباقات -->
+                <div class="categories-panel">
+                    <h3>الباقات</h3>
+                    <ul id="live-categories" class="category-list"></ul>
+                </div>
+
+                <!-- قسم القنوات -->
+                <div class="channels-panel">
+                    <div class="panel-header">
+                        <h3 id="current-category-title">جميع القنوات</h3>
+                        <span id="items-count" class="badge">0</span>
+                    </div>
+                    <div id="channels-list" class="channels-scroll"></div>
+                </div>
+
+                <!-- مشغل الفيديو -->
+                <div class="player-panel">
+                    <div class="video-wrapper" id="video-container">
+                        <video id="video-player" controls playsinline></video>
+                        <div id="player-placeholder" class="player-overlay">
+                            <i class="fa-solid fa-satellite-dish"></i>
+                            <p>اختر قناة من القائمة لبدء المشاهدة</p>
+                        </div>
+                        <div id="player-loader" class="player-overlay hidden">
+                            <div class="spinner"></div>
+                            <p>جاري الاتصال بالبث...</p>
+                        </div>
+                    </div>
+                    <div class="now-playing-bar">
+                        <div>
+                            <h3 id="playing-title">لم يتم اختيار بث</h3>
+                            <span id="playing-cat" class="muted-text">MAX 4K IPTV</span>
+                        </div>
+                        <div class="player-controls-extra">
+                            <button id="fav-current-btn" class="action-pill"><i class="fa-regular fa-heart"></i> مفضلة</button>
+                            <button id="pip-btn" class="action-pill"><i class="fa-solid fa-clone"></i> نافذة عائمة</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- منطقة الأفلام والمسلسلات والمفضلة (شبكة بطاقات) -->
+            <div id="vod-workspace" class="vod-section hidden">
+                <div class="vod-header">
+                    <div class="vod-cats-scroll" id="vod-categories"></div>
+                </div>
+                <div id="vod-grid" class="cards-grid"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- نافذة تفاصيل المسلسل (الحلقات والمواسم) -->
+    <div id="series-modal" class="modal hidden">
+        <div class="modal-content">
+            <button id="close-series-modal" class="close-modal"><i class="fa-solid fa-xmark"></i></button>
+            <div class="series-hero">
+                <img id="series-poster" src="" alt="">
+                <div class="series-meta">
+                    <h2 id="series-title">اسم المسلسل</h2>
+                    <p id="series-plot">قصة المسلسل...</p>
+                    <div class="season-selector" id="seasons-tabs"></div>
+                </div>
+            </div>
+            <div id="episodes-list" class="episodes-grid"></div>
+        </div>
+    </div>
+
+    <!-- نافذة تشغيل الأفلام والحلقات بملء الشاشة -->
+    <div id="vod-player-modal" class="modal hidden">
+        <div class="vod-modal-box">
+            <div class="vod-modal-top">
+                <h3 id="vod-playing-title">مشاهدة</h3>
+                <button id="close-vod-player" class="close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <video id="vod-video-player" controls autoplay playsinline></video>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
